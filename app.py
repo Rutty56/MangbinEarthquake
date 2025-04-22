@@ -1,7 +1,8 @@
 import os
 from flask import Flask, request, abort
-from linebot import LineBotApi, WebhookHandler
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.v3 import WebhookHandler
+from linebot.v3.messaging import MessagingApi
+from linebot.v3.models import MessageEvent, TextMessage, TextSendMessage
 from dotenv import load_dotenv
 from earthquake_check import fetch_earthquakes, get_recent_earthquakes, save_registered_user, get_registered_users
 
@@ -12,8 +13,8 @@ app = Flask(__name__)
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 
-line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
+messaging_api = MessagingApi(LINE_CHANNEL_ACCESS_TOKEN)
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -48,7 +49,7 @@ def handle_message(event):
     else:
         reply_text = "พิมพ์ว่า 'สมัคร' เพื่อเริ่มรับการแจ้งเตือนแผ่นดินไหว 🌏 หรือ 'แผ่นดินไหวล่าสุด' เพื่อดูข้อมูลแผ่นดินไหวล่าสุด"
 
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+    messaging_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
