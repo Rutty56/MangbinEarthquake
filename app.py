@@ -1,8 +1,8 @@
 import os
 import requests
 from flask import Flask, request, abort
-from linebot.v3.messaging import MessagingApi
-from linebot.v3.models import MessageEvent, TextMessage, TextSendMessage 
+from linebot.v3.webhooks import WebhookHandler, MessageEvent
+from linebot.v3.models import TextMessage, TextSendMessage
 from dotenv import load_dotenv
 from utils.users import save_registered_user, get_registered_users
 
@@ -13,13 +13,13 @@ app = Flask(__name__)
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 
-messaging_api = MessagingApi(LINE_CHANNEL_ACCESS_TOKEN)
+handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
 def fetch_earthquakes():
     url = "https://data.tmd.go.th/api/DailySeismicEvent/v1/?uid=api&ukey=api12345"
     response = requests.get(url)
     if response.status_code == 200:
-        return response.json()["DailyEarthquakes"]  
+        return response.json()["DailyEarthquakes"]
     return []
 
 def get_recent_earthquakes(earthquakes, limit=3):
@@ -29,18 +29,14 @@ def get_recent_earthquakes(earthquakes, limit=3):
 def callback():
     signature = request.headers["X-Line-Signature"]
     body = request.get_data(as_text=True)
-    
     try:
-        if not messaging_api.verify_signature(body, signature):
-            abort(400)
-        
-        event = MessageEvent.from_json(body)  
-        handle_message(event)  
+        handler.handle(body, signature)
     except Exception as e:
         print("Error handling request:", e)
         abort(400)
     return "OK"
 
+@handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id
     text = event.message.text.strip().lower()
@@ -62,7 +58,7 @@ def handle_message(event):
     else:
         reply_text = "พิมพ์ว่า 'สมัคร' เพื่อเริ่มรับการแจ้งเตือนแผ่นดินไหว 🌏 หรือ 'แผ่นดินไหวล่าสุด' เพื่อดูข้อมูลแผ่นดินไหวล่าสุด"
 
-    messaging_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+    handler.reply_message(event.reply_token, TextSendMessage(text=reply_text))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
