@@ -2,7 +2,7 @@ import os
 import requests
 from flask import Flask, request, abort
 from linebot.v3.messaging import MessagingApi
-from linebot.v3.webhooks import MessageEvent, TextMessage, TextSendMessage
+from linebot.v3.models import MessageEvent, TextMessage, TextSendMessage 
 from dotenv import load_dotenv
 from utils.users import save_registered_user, get_registered_users
 
