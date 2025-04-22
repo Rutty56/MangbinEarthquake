@@ -1,11 +1,12 @@
+import os
 import requests
 from datetime import datetime
-from linebot.v3 import LineBotApi
-from linebot.v3.models import TextSendMessage
-import os
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 import base64
+from dotenv import load_dotenv
+
+load_dotenv()
 
 API_URL = "https://data.tmd.go.th/api/DailySeismicEvent/v1/?uid=api&ukey=api12345"
 REGISTERED_USERS_FILE = "registered_users.txt"
@@ -79,6 +80,8 @@ def send_alert(quakes):
     if not quakes:
         return
 
+    from linebot import LineBotApi
+    from linebot.models import TextSendMessage
     line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
     user_ids = get_registered_users()
 
@@ -90,4 +93,7 @@ def send_alert(quakes):
             f"วันที่: {quake.get('DateTime')}\n"
         )
         for user_id in user_ids:
-            line_bot_api.push_message(user_id, TextSendMessage(text=msg))
+            try:
+                line_bot_api.push_message(user_id, TextSendMessage(text=msg))
+            except Exception as e:
+                print(f"Error sending message to user {user_id}: {e}")
