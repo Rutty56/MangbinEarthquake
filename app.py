@@ -37,7 +37,7 @@ def handle_message(event):
     text = event.message.text.strip().lower()
 
     if text == "เปิดการแจ้งเตือน":
-        save_registered_user(user_id)  # บันทึก user_id ด้วยการเข้ารหัส
+        save_registered_user(user_id) 
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(text="✅ คุณได้สมัครรับการแจ้งเตือนแผ่นดินไหวแล้ว")
