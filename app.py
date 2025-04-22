@@ -1,7 +1,7 @@
 import os
 from flask import Flask, request, abort
-from linebot.v3 import LineBotApi, WebhookHandler
-from linebot.v3.models import MessageEvent, TextMessage, TextSendMessage
+from linebot import LineBotApi, WebhookHandler
+from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from dotenv import load_dotenv
 from earthquake_check import fetch_earthquakes, get_recent_earthquakes, save_registered_user, get_registered_users
 
