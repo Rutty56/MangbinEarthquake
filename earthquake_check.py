@@ -17,13 +17,13 @@ BLOCK_SIZE = 16
 def encrypt_data(data):
     cipher = AES.new(KEY.encode('utf-8'), AES.MODE_CBC)
     ct_bytes = cipher.encrypt(pad(data.encode('utf-8'), BLOCK_SIZE))
-    iv = base64.b64encode(cipher.iv).decode('utf-8')
-    ct = base64.b64encode(ct_bytes).decode('utf-8')
-    return iv + ct
+    encrypted = cipher.iv + ct_bytes
+    return base64.b64encode(encrypted).decode('utf-8')
 
 def decrypt_data(enc_data):
-    iv = base64.b64decode(enc_data[:24])
-    ct = base64.b64decode(enc_data[24:])
+    raw = base64.b64decode(enc_data)
+    iv = raw[:16]
+    ct = raw[16:]
     cipher = AES.new(KEY.encode('utf-8'), AES.MODE_CBC, iv)
     pt = unpad(cipher.decrypt(ct), BLOCK_SIZE).decode('utf-8')
     return pt
@@ -67,11 +67,16 @@ def save_registered_user(user_id):
     if os.path.exists(REGISTERED_USERS_FILE):
         with open(REGISTERED_USERS_FILE, "r") as f:
             encrypted_data = f.read()
-        current_data = decrypt_data(encrypted_data)
+        try:
+            current_data = decrypt_data(encrypted_data)
+        except Exception as e:
+            print("Error decrypting current data:", e)
 
-    current_data += user_id + "\n"
+    lines = set(current_data.strip().splitlines())
+    lines.add(user_id)
 
-    encrypted_data = encrypt_data(current_data)
+    new_data = "\n".join(lines) + "\n"
+    encrypted_data = encrypt_data(new_data)
 
     with open(REGISTERED_USERS_FILE, "w") as f:
         f.write(encrypted_data)
