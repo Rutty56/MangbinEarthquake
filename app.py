@@ -1,8 +1,9 @@
 import os
 import requests
 from flask import Flask, request, abort
-from linebot.v3.webhooks import WebhookHandler, MessageEvent
-from linebot.v3.models import TextMessage, TextSendMessage
+from linebot import LineBotApi, WebhookHandler
+from linebot.exceptions import InvalidSignatureError
+from linebot.models import TextMessage, TextSendMessage, MessageEvent
 from dotenv import load_dotenv
 from utils.users import save_registered_user, get_registered_users
 
@@ -13,6 +14,7 @@ app = Flask(__name__)
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 
+line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
 def fetch_earthquakes():
@@ -31,8 +33,8 @@ def callback():
     body = request.get_data(as_text=True)
     try:
         handler.handle(body, signature)
-    except Exception as e:
-        print("Error handling request:", e)
+    except InvalidSignatureError as e:
+        print("Invalid signature:", e)
         abort(400)
     return "OK"
 
@@ -58,7 +60,7 @@ def handle_message(event):
     else:
         reply_text = "พิมพ์ว่า 'สมัคร' เพื่อเริ่มรับการแจ้งเตือนแผ่นดินไหว 🌏 หรือ 'แผ่นดินไหวล่าสุด' เพื่อดูข้อมูลแผ่นดินไหวล่าสุด"
 
-    handler.reply_message(event.reply_token, TextSendMessage(text=reply_text))
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
