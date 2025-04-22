@@ -1,5 +1,5 @@
-Flask==2.2.2
+Flask
 python-dotenv
-line-bot-sdk>=3.16.0
+line-bot-sdk==3.16.0
 requests
 pycryptodome
