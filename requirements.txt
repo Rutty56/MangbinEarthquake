@@ -1,6 +1,4 @@
-Flask==2.2.2
-werkzeug==2.2.2
+flask
 python-dotenv
 line-bot-sdk==3.*
 requests
-pycryptodome
