@@ -1,5 +1,6 @@
 import os
 import requests
+import xml.etree.ElementTree as ET
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -20,8 +21,26 @@ handler = WebhookHandler(LINE_CHANNEL_SECRET)
 def fetch_earthquakes():
     url = "https://data.tmd.go.th/api/DailySeismicEvent/v1/?uid=api&ukey=api12345"
     response = requests.get(url)
+    
     if response.status_code == 200:
-        return response.json()["DailyEarthquakes"]
+        root = ET.fromstring(response.text)
+        earthquakes = []
+        
+        for quake in root.findall(".//DailyEarthquakes"):
+            origin_thai = quake.find("OriginThai").text
+            datetime_thai = quake.find("DateTimeThai").text
+            magnitude = quake.find("Magnitude").text
+            title_thai = quake.find("TitleThai").text
+
+            earthquake_data = {
+                "OriginThai": origin_thai,
+                "DateTimeThai": datetime_thai,
+                "Magnitude": magnitude,
+                "TitleThai": title_thai
+            }
+            earthquakes.append(earthquake_data)
+        
+        return earthquakes
     return []
 
 def get_recent_earthquakes(earthquakes, limit=3):
@@ -31,11 +50,13 @@ def get_recent_earthquakes(earthquakes, limit=3):
 def callback():
     signature = request.headers["X-Line-Signature"]
     body = request.get_data(as_text=True)
+    
     try:
         handler.handle(body, signature)
     except InvalidSignatureError as e:
         print("Invalid signature:", e)
         abort(400)
+    
     return "OK"
 
 @handler.add(MessageEvent, message=TextMessage)
@@ -49,6 +70,7 @@ def handle_message(event):
     elif text == "แผ่นดินไหวล่าสุด":
         earthquakes = fetch_earthquakes()
         recent_quakes = get_recent_earthquakes(earthquakes)
+        
         if recent_quakes:
             reply_text = "🌍 แผ่นดินไหวล่าสุด:\n"
             for i, quake in enumerate(recent_quakes, 1):
