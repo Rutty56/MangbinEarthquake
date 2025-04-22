@@ -1,7 +1,7 @@
 import requests
 from datetime import datetime
-from linebot import LineBotApi
-from linebot.models import TextSendMessage
+from linebot.v3 import LineBotApi
+from linebot.v3.models import TextSendMessage
 import os
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
@@ -10,7 +10,7 @@ import base64
 API_URL = "https://data.tmd.go.th/api/DailySeismicEvent/v1/?uid=api&ukey=api12345"
 REGISTERED_USERS_FILE = "registered_users.txt"
 
-KEY = os.getenv("ENCRYPTION_KEY", "thisisaverysecretkey2025")[:32] 
+KEY = os.getenv("ENCRYPTION_KEY", "thisisaverysecretkey2025")[:32]
 BLOCK_SIZE = 16
 
 def encrypt_data(data):
@@ -18,10 +18,10 @@ def encrypt_data(data):
     ct_bytes = cipher.encrypt(pad(data.encode('utf-8'), BLOCK_SIZE))
     iv = base64.b64encode(cipher.iv).decode('utf-8')
     ct = base64.b64encode(ct_bytes).decode('utf-8')
-    return iv + ct  
+    return iv + ct
 
 def decrypt_data(enc_data):
-    iv = base64.b64decode(enc_data[:24])  
+    iv = base64.b64decode(enc_data[:24])
     ct = base64.b64decode(enc_data[24:])
     cipher = AES.new(KEY.encode('utf-8'), AES.MODE_CBC, iv)
     pt = unpad(cipher.decrypt(ct), BLOCK_SIZE).decode('utf-8')
