@@ -31,29 +31,28 @@ def decrypt_data(enc_data):
 def fetch_earthquakes():
     try:
         res = requests.get(API_URL)
-        data = res.json()
-        return data.get("Data", [])
+        if res.status_code == 200:
+            data = res.json()
+            return data.get("Data", [])
+        else:
+            print(f"Error fetching data, status code: {res.status_code}")
+            return []
     except Exception as e:
         print("Error fetching data:", e)
         return []
 
-def filter_significant_quakes(data, magnitude_threshold=5.0):
+def get_recent_earthquakes(data, count=3):
     today = datetime.utcnow().date()
     significant = []
     for quake in data:
         try:
             mag = float(quake.get("Magnitude", 0))
             timestamp = datetime.strptime(quake["DateTime"], "%Y-%m-%dT%H:%M:%S")
-            if mag >= magnitude_threshold and timestamp.date() == today:
+            if mag >= 5.0 and timestamp.date() == today:
                 significant.append(quake)
         except:
             continue
-    return significant
-
-def get_recent_earthquakes(data, count=3):
-    """ ดึงข้อมูลแผ่นดินไหวล่าสุดตามลำดับการเกิด """
-    recent_quakes = sorted(data, key=lambda x: x["DateTime"], reverse=True)
-    return recent_quakes[:count]
+    return significant[:count]
 
 def get_registered_users():
     if not os.path.exists(REGISTERED_USERS_FILE):
@@ -80,25 +79,3 @@ def save_registered_user(user_id):
 
     with open(REGISTERED_USERS_FILE, "w") as f:
         f.write(encrypted_data)
-
-def send_alert(quakes):
-    if not quakes:
-        return
-
-    from linebot import LineBotApi
-    from linebot.models import TextSendMessage
-    line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
-    user_ids = get_registered_users()
-
-    for quake in quakes:
-        msg = (
-            f"🌏 แจ้งเตือนแผ่นดินไหว!\n"
-            f"สถานที่: {quake.get('Location')}\n"
-            f"ขนาด: {quake.get('Magnitude')} ML\n"
-            f"วันที่: {quake.get('DateTime')}\n"
-        )
-        for user_id in user_ids:
-            try:
-                line_bot_api.push_message(user_id, TextSendMessage(text=msg))
-            except Exception as e:
-                print(f"Error sending message to user {user_id}: {e}")
