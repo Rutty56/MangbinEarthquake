@@ -1,56 +1,60 @@
 from flask import Flask, request, abort
-from linebot.v3 import WebhookHandler
-from linebot.v3.messaging import MessagingApi, Configuration, ApiClient, TextMessage, ReplyMessageRequest
-from linebot.v3.webhooks import MessageEvent, TextMessageContent
+from linebot import LineBotApi, WebhookHandler
+from linebot.exceptions import InvalidSignatureError
+from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from earthquake_check import fetch_earthquakes, filter_significant_quakes, send_alert, save_registered_user
 import os
-from earthquake_check import get_latest_earthquake
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
+line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
+handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 
-CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN')
-CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET')
+@app.route("/")
+def index():
+    data = fetch_earthquakes()
+    filtered = filter_significant_quakes(data)
+    send_alert(filtered)
+    return "Checked earthquakes ✅"
 
-configuration = Configuration(access_token=CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(CHANNEL_SECRET)
-
-@app.route("/callback", methods=['POST'])
+@app.route("/callback", methods=["POST"])
 def callback():
-    signature = request.headers.get('X-Line-Signature')
+    signature = request.headers["X-Line-Signature"]
     body = request.get_data(as_text=True)
 
     try:
         handler.handle(body, signature)
-    except Exception as e:
-        print(f"Error: {e}")
+    except InvalidSignatureError:
         abort(400)
 
-    return 'OK'
+    return "OK"
 
-@handler.add(MessageEvent, message=TextMessageContent)
+@handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    user_msg = event.message.text.lower()  # รับข้อความจากผู้ใช้และทำให้เป็นตัวพิมพ์เล็ก
+    user_id = event.source.user_id
+    text = event.message.text.strip().lower()
 
-    # เช็คว่าผู้ใช้พูดถึงแผ่นดินไหว
-    if 'แผ่นดินไหว' in user_msg:
-        quake_info = get_latest_earthquake()  # ดึงข้อมูลแผ่นดินไหวล่าสุด
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            line_bot_api.reply_message(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text=quake_info)]  # ส่งข้อความตอบกลับ
-                )
+    if text == "เปิดการแจ้งเตือน":
+        save_registered_user(user_id)  # บันทึก user_id ด้วยการเข้ารหัส
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="✅ คุณได้สมัครรับการแจ้งเตือนแผ่นดินไหวแล้ว")
+        )
+    elif text == "แผ่นดินไหวล่าสุด":
+        data = fetch_earthquakes()
+        filtered = filter_significant_quakes(data, magnitude_threshold=0)
+        if filtered:
+            msg = "\n\n".join(
+                f"📍 {q['Location']} - ขนาด {q['Magnitude']} ML\n⏰ {q['DateTime']}"
+                for q in filtered[:3]
             )
+        else:
+            msg = "ยังไม่มีข้อมูลแผ่นดินไหวล่าสุดครับ"
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=msg))
     else:
-        # หากข้อความไม่ตรงกับคำว่า 'แผ่นดินไหว'
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            line_bot_api.reply_message(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text="ขออภัย, ฉันไม่เข้าใจคำขอของคุณ")]  # ส่งข้อความตอบกลับเมื่อไม่ตรง
-                )
-            )
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="พิมพ์ 'เปิดการแจ้งเตือน' เพื่อเริ่มรับแจ้งเตือนแผ่นดินไหว"))
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
