@@ -1,5 +1,6 @@
 from flask import Flask, request, abort
-from linebot import LineBotApi, WebhookHandler
+from linebot.v3 import LineBotApi
+from linebot.v3.webhook import WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from earthquake_check import fetch_earthquakes, filter_significant_quakes, send_alert, save_registered_user
@@ -37,7 +38,7 @@ def handle_message(event):
     text = event.message.text.strip().lower()
 
     if text == "เปิดการแจ้งเตือน":
-        save_registered_user(user_id) 
+        save_registered_user(user_id)
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(text="✅ คุณได้สมัครรับการแจ้งเตือนแผ่นดินไหวแล้ว")
