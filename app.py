@@ -28,16 +28,27 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
-    user_msg = event.message.text.lower()
+    user_msg = event.message.text.lower()  # รับข้อความจากผู้ใช้และทำให้เป็นตัวพิมพ์เล็ก
 
+    # เช็คว่าผู้ใช้พูดถึงแผ่นดินไหว
     if 'แผ่นดินไหว' in user_msg:
-        quake_info = get_latest_earthquake()
+        quake_info = get_latest_earthquake()  # ดึงข้อมูลแผ่นดินไหวล่าสุด
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
             line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
-                    messages=[TextMessage(text=quake_info)]
+                    messages=[TextMessage(text=quake_info)]  # ส่งข้อความตอบกลับ
+                )
+            )
+    else:
+        # หากข้อความไม่ตรงกับคำว่า 'แผ่นดินไหว'
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text="ขออภัย, ฉันไม่เข้าใจคำขอของคุณ")]  # ส่งข้อความตอบกลับเมื่อไม่ตรง
                 )
             )
 
