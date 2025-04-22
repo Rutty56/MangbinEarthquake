@@ -32,11 +32,18 @@ def fetch_earthquakes():
             magnitude = quake.find("Magnitude").text
             title_thai = quake.find("TitleThai").text
 
+            depth = quake.find("Depth").text if quake.find("Depth") is not None else "ไม่ระบุ"
+            latitude = quake.find("Latitude").text if quake.find("Latitude") is not None else "ไม่ระบุ"
+            longitude = quake.find("Longitude").text if quake.find("Longitude") is not None else "ไม่ระบุ"
+
             earthquake_data = {
                 "OriginThai": origin_thai,
                 "DateTimeThai": datetime_thai,
                 "Magnitude": magnitude,
-                "TitleThai": title_thai
+                "TitleThai": title_thai,
+                "Depth": depth,
+                "Latitude": latitude,
+                "Longitude": longitude
             }
             earthquakes.append(earthquake_data)
         
