@@ -1,3 +1,5 @@
 flask
+line-bot-sdk
+python-dotenv
 requests
-line-bot-sdk>=3.0.0
+pycryptodome
