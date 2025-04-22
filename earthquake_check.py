@@ -8,9 +8,9 @@ from Crypto.Util.Padding import pad, unpad
 import base64
 
 API_URL = "https://data.tmd.go.th/api/DailySeismicEvent/v1/?uid=api&ukey=api12345"
-REGISTERED_USERS_FILE = "registered_users.txt"  
+REGISTERED_USERS_FILE = "registered_users.txt"
 
-KEY = os.getenv("ENCRYPTION_KEY", "thisisaverysecretkey2025")[:32]
+KEY = os.getenv("ENCRYPTION_KEY", "thisisaverysecretkey2025")[:32] 
 BLOCK_SIZE = 16
 
 def encrypt_data(data):
@@ -21,7 +21,7 @@ def encrypt_data(data):
     return iv + ct  
 
 def decrypt_data(enc_data):
-    iv = base64.b64decode(enc_data[:24]) 
+    iv = base64.b64decode(enc_data[:24])  
     ct = base64.b64decode(enc_data[24:])
     cipher = AES.new(KEY.encode('utf-8'), AES.MODE_CBC, iv)
     pt = unpad(cipher.decrypt(ct), BLOCK_SIZE).decode('utf-8')
@@ -55,7 +55,6 @@ def get_registered_users():
     with open(REGISTERED_USERS_FILE, "r") as f:
         encrypted_data = f.read()
     try:
-
         decrypted_data = decrypt_data(encrypted_data)
         return list(set([line.strip() for line in decrypted_data.splitlines() if line.strip()]))
     except Exception as e:
@@ -63,19 +62,15 @@ def get_registered_users():
         return []
 
 def save_registered_user(user_id):
-
     current_data = ""
     if os.path.exists(REGISTERED_USERS_FILE):
         with open(REGISTERED_USERS_FILE, "r") as f:
             encrypted_data = f.read()
         current_data = decrypt_data(encrypted_data)
 
-
     current_data += user_id + "\n"
 
-
     encrypted_data = encrypt_data(current_data)
-
 
     with open(REGISTERED_USERS_FILE, "w") as f:
         f.write(encrypted_data)
