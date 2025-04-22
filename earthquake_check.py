@@ -11,26 +11,22 @@ load_dotenv()
 API_URL = "https://data.tmd.go.th/api/DailySeismicEvent/v1/?uid=api&ukey=api12345"
 REGISTERED_USERS_FILE = "registered_users.txt"
 
-KEY = os.getenv("ENCRYPTION_KEY", "thisisaverysecretkey2025")[:32].encode("utf-8")
+KEY = os.getenv("ENCRYPTION_KEY", "thisisaverysecretkey2025")[:32]
 BLOCK_SIZE = 16
 
 def encrypt_data(data):
-    cipher = AES.new(KEY, AES.MODE_CBC)
-    ct_bytes = cipher.encrypt(pad(data.encode("utf-8"), BLOCK_SIZE))
-    iv = base64.b64encode(cipher.iv).decode("utf-8")
-    ct = base64.b64encode(ct_bytes).decode("utf-8")
+    cipher = AES.new(KEY.encode('utf-8'), AES.MODE_CBC)
+    ct_bytes = cipher.encrypt(pad(data.encode('utf-8'), BLOCK_SIZE))
+    iv = base64.b64encode(cipher.iv).decode('utf-8')
+    ct = base64.b64encode(ct_bytes).decode('utf-8')
     return iv + ct
 
 def decrypt_data(enc_data):
-    try:
-        iv = base64.b64decode(enc_data[:24])  # 16 bytes IV base64 ≈ 24 chars
-        ct = base64.b64decode(enc_data[24:])
-        cipher = AES.new(KEY, AES.MODE_CBC, iv)
-        pt = unpad(cipher.decrypt(ct), BLOCK_SIZE).decode("utf-8")
-        return pt
-    except Exception as e:
-        print("Error decrypting:", e)
-        return ""
+    iv = base64.b64decode(enc_data[:24])
+    ct = base64.b64decode(enc_data[24:])
+    cipher = AES.new(KEY.encode('utf-8'), AES.MODE_CBC, iv)
+    pt = unpad(cipher.decrypt(ct), BLOCK_SIZE).decode('utf-8')
+    return pt
 
 def fetch_earthquakes():
     try:
@@ -54,31 +50,33 @@ def filter_significant_quakes(data, magnitude_threshold=5.0):
             continue
     return significant
 
+def get_recent_earthquakes(data, count=3):
+    """ ดึงข้อมูลแผ่นดินไหวล่าสุดตามลำดับการเกิด """
+    recent_quakes = sorted(data, key=lambda x: x["DateTime"], reverse=True)
+    return recent_quakes[:count]
+
 def get_registered_users():
     if not os.path.exists(REGISTERED_USERS_FILE):
         return []
     with open(REGISTERED_USERS_FILE, "r") as f:
-        encrypted_data = f.read().strip()
+        encrypted_data = f.read()
     try:
         decrypted_data = decrypt_data(encrypted_data)
         return list(set([line.strip() for line in decrypted_data.splitlines() if line.strip()]))
     except Exception as e:
-        print("Error reading users:", e)
+        print("Error decrypting data:", e)
         return []
 
 def save_registered_user(user_id):
     current_data = ""
     if os.path.exists(REGISTERED_USERS_FILE):
         with open(REGISTERED_USERS_FILE, "r") as f:
-            encrypted_data = f.read().strip()
+            encrypted_data = f.read()
         current_data = decrypt_data(encrypted_data)
 
-    lines = list(set(current_data.splitlines()))
-    if user_id not in lines:
-        lines.append(user_id)
+    current_data += user_id + "\n"
 
-    new_plaintext = "\n".join(lines)
-    encrypted_data = encrypt_data(new_plaintext)
+    encrypted_data = encrypt_data(current_data)
 
     with open(REGISTERED_USERS_FILE, "w") as f:
         f.write(encrypted_data)
@@ -87,10 +85,9 @@ def send_alert(quakes):
     if not quakes:
         return
 
-    from linebot.v3.messaging import MessagingApi, TextMessage
-    from linebot.v3.messaging import Configuration, ApiClient
-
-    line_bot_api = MessagingApi(ApiClient(Configuration(access_token=os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))))
+    from linebot import LineBotApi
+    from linebot.models import TextSendMessage
+    line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
     user_ids = get_registered_users()
 
     for quake in quakes:
@@ -102,6 +99,6 @@ def send_alert(quakes):
         )
         for user_id in user_ids:
             try:
-                line_bot_api.push_message(to=user_id, messages=[TextMessage(text=msg)])
+                line_bot_api.push_message(user_id, TextSendMessage(text=msg))
             except Exception as e:
-                print(f"Error sending to {user_id}:", e)
+                print(f"Error sending message to user {user_id}: {e}")
