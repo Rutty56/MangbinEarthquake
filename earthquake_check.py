@@ -8,23 +8,20 @@ from Crypto.Util.Padding import pad, unpad
 import base64
 
 API_URL = "https://data.tmd.go.th/api/DailySeismicEvent/v1/?uid=api&ukey=api12345"
-REGISTERED_USERS_FILE = "registered_users.txt"  # เปลี่ยนชื่อไฟล์ที่เก็บ user_id
+REGISTERED_USERS_FILE = "registered_users.txt"  
 
-# ขนาดของ key และ block ขนาด 16 bytes สำหรับ AES
-KEY = os.getenv("ENCRYPTION_KEY", "thisisaverysecretkey1234")[:32]  # ควรเปลี่ยนเป็นคีย์ที่ปลอดภัยมากขึ้น
+KEY = os.getenv("ENCRYPTION_KEY", "thisisaverysecretkey2025")[:32]
 BLOCK_SIZE = 16
 
-# เข้ารหัส
 def encrypt_data(data):
     cipher = AES.new(KEY.encode('utf-8'), AES.MODE_CBC)
     ct_bytes = cipher.encrypt(pad(data.encode('utf-8'), BLOCK_SIZE))
     iv = base64.b64encode(cipher.iv).decode('utf-8')
     ct = base64.b64encode(ct_bytes).decode('utf-8')
-    return iv + ct  # ส่ง iv + ciphertext
+    return iv + ct  
 
-# ถอดรหัส
 def decrypt_data(enc_data):
-    iv = base64.b64decode(enc_data[:24])  # ขนาด iv คือ 16 bytes เข้ารหัสเป็น base64 ใช้ 24 ตัวอักษร
+    iv = base64.b64decode(enc_data[:24]) 
     ct = base64.b64decode(enc_data[24:])
     cipher = AES.new(KEY.encode('utf-8'), AES.MODE_CBC, iv)
     pt = unpad(cipher.decrypt(ct), BLOCK_SIZE).decode('utf-8')
@@ -58,7 +55,7 @@ def get_registered_users():
     with open(REGISTERED_USERS_FILE, "r") as f:
         encrypted_data = f.read()
     try:
-        # ถอดรหัสข้อมูล
+
         decrypted_data = decrypt_data(encrypted_data)
         return list(set([line.strip() for line in decrypted_data.splitlines() if line.strip()]))
     except Exception as e:
@@ -66,20 +63,20 @@ def get_registered_users():
         return []
 
 def save_registered_user(user_id):
-    # อ่านข้อมูลเก่า
+
     current_data = ""
     if os.path.exists(REGISTERED_USERS_FILE):
         with open(REGISTERED_USERS_FILE, "r") as f:
             encrypted_data = f.read()
         current_data = decrypt_data(encrypted_data)
 
-    # เพิ่ม user_id ใหม่
+
     current_data += user_id + "\n"
 
-    # เข้ารหัสข้อมูลใหม่
+
     encrypted_data = encrypt_data(current_data)
 
-    # เขียนข้อมูลเข้ารหัสลงไฟล์
+
     with open(REGISTERED_USERS_FILE, "w") as f:
         f.write(encrypted_data)
 
