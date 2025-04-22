@@ -1,4 +1,4 @@
-Flask
+Flask==2.2.2
 python-dotenv
 line-bot-sdk==3.15.0
 requests
