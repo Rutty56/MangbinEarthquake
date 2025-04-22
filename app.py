@@ -2,9 +2,8 @@ import os
 import requests
 from flask import Flask, request, abort
 from linebot.v3.messaging import MessagingApi
-from linebot.v3.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.v3.webhooks import WebhookHandler, MessageEvent, TextMessage, TextSendMessage
 from dotenv import load_dotenv
-from linebot.v3.webhooks import WebhookHandler 
 from utils.users import save_registered_user, get_registered_users
 
 load_dotenv()
@@ -15,13 +14,13 @@ LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 
 messaging_api = MessagingApi(LINE_CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(LINE_CHANNEL_SECRET)  
+handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
 def fetch_earthquakes():
     url = "https://data.tmd.go.th/api/DailySeismicEvent/v1/?uid=api&ukey=api12345"
     response = requests.get(url)
     if response.status_code == 200:
-        return response.json()["DailyEarthquakes"]  
+        return response.json()["DailyEarthquakes"]
     return []
 
 def get_recent_earthquakes(earthquakes, limit=3):
@@ -32,7 +31,7 @@ def callback():
     signature = request.headers["X-Line-Signature"]
     body = request.get_data(as_text=True)
     try:
-        handler.handle(body, signature)  
+        handler.handle(body, signature)
     except Exception as e:
         print("Error handling request:", e)
         abort(400)
