@@ -1,7 +1,8 @@
 import os
 from flask import Flask, request, abort
-from linebot import LineBotApi, WebhookHandler
-from linebot.models import TextSendMessage, MessageEvent, TextMessage
+from linebot.v3 import LineBotApi
+from linebot.v3.webhook import WebhookHandler
+from linebot.v3.models import TextSendMessage, MessageEvent, TextMessage
 from linebot.exceptions import InvalidSignatureError
 from earthquake_check import fetch_earthquakes, filter_significant_quakes, send_alert, save_registered_user
 from dotenv import load_dotenv
@@ -9,8 +10,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
+
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
+
+@app.route("/")
+def index():
+    data = fetch_earthquakes()
+    filtered = filter_significant_quakes(data)
+    send_alert(filtered)  
+    return "Checked earthquakes ✅"
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -49,12 +58,5 @@ def handle_message(event):
     else:
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="พิมพ์ 'เปิดการแจ้งเตือน' เพื่อเริ่มรับแจ้งเตือนแผ่นดินไหว"))
 
-@app.route("/")
-def index():
-    data = fetch_earthquakes()
-    filtered = filter_significant_quakes(data)
-    send_alert(filtered)
-    return "Checked earthquakes ✅"
-
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
