@@ -82,10 +82,10 @@ def handle_message(event):
             reply_text = "🌍 แผ่นดินไหวล่าสุด:\n"
             for i, quake in enumerate(recent_quakes, 1):
                 reply_text += (f"{i}. ขนาด: {quake['Magnitude']} แมกนิจูด\n"
-                               f"   ความลึก: {quake['Depth']} กม.\n"
                                f"   สถานที่: {quake['OriginThai']}\n"
+                               f"   ความลึก: {quake['Depth']} กม\n"
                                f"   พิกัด: {quake['Latitude']}, {quake['Longitude']}\n"
-                               f"   วันที่: {quake['DateTimeThai']}\n\n")
+                               f"   เวลา: {quake['DateTimeThai']}\n\n")
         else:
             reply_text = "ไม่พบข้อมูลแผ่นดินไหวล่าสุด."
     else:
