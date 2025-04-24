@@ -113,6 +113,7 @@ def handle_message(event):
                     f"   พิกัด: {quake['Latitude']}, {quake['Longitude']}\n"
                     f"   เวลา: {formatted_time}\n\n"
                 )
+            reply_text += "\nข้อมูลจาก https://data.tmd.go.th"
         else:
             reply_text = "ไม่พบข้อมูลแผ่นดินไหวล่าสุด."
     else:
