@@ -1,47 +1,31 @@
 import os
-import base64
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
+from dotenv import load_dotenv
 
-KEY = os.getenv("ENCRYPTION_KEY", "1234567890123456").encode("utf-8")
-IV = b"ThisIsAnIV123456"
-DATA_FILE = "registered_users.txt"
+load_dotenv()
 
-def encrypt(text):
-    cipher = AES.new(KEY, AES.MODE_CBC, IV)
-    ct_bytes = cipher.encrypt(pad(text.encode("utf-8"), AES.block_size))
-    return base64.b64encode(ct_bytes).decode("utf-8")
-
-def decrypt(cipher_text):
-    cipher = AES.new(KEY, AES.MODE_CBC, IV)
-    pt = unpad(cipher.decrypt(base64.b64decode(cipher_text)), AES.block_size)
-    return pt.decode("utf-8")
-
-def get_registered_users():
-    users = []
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            for line in f:
-                try:
-                    users.append(decrypt(line.strip()))
-                except:
-                    continue
-    return users
+REGISTERED_USERS_FILE = "registered_users.txt"
 
 def save_registered_user(user_id):
-    users = get_registered_users()
-    if user_id in users:
-        return False
-    with open(DATA_FILE, "a", encoding="utf-8") as f:
-        f.write(encrypt(user_id) + "\n")
-    return True
+    registered_users = get_registered_users()
+    if user_id not in registered_users:
+        with open(REGISTERED_USERS_FILE, "a") as file:
+            file.write(f"{user_id}\n")
+    else:
+        print(f"User {user_id} is already registered.")
+
+def get_registered_users():
+    if os.path.exists(REGISTERED_USERS_FILE):
+        with open(REGISTERED_USERS_FILE, "r") as file:
+            return [user.strip() for user in file.readlines()]
+    return []
 
 def remove_registered_user(user_id):
-    users = get_registered_users()
-    if user_id not in users:
-        return False
-    users.remove(user_id)
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        for u in users:
-            f.write(encrypt(u) + "\n")
-    return True
+    registered_users = get_registered_users()
+    if user_id in registered_users:
+        registered_users.remove(user_id)
+        with open(REGISTERED_USERS_FILE, "w") as file:
+            for user in registered_users:
+                file.write(f"{user}\n")
+        print(f"User {user_id} has been removed from the registered list.")
+    else:
+        print(f"User {user_id} not found in the registered list.")
