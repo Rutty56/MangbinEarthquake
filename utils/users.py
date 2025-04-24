@@ -10,8 +10,9 @@ def save_registered_user(user_id):
     if user_id not in registered_users:
         with open(REGISTERED_USERS_FILE, "a") as file:
             file.write(f"{user_id}\n")
+        return True
     else:
-        print(f"User {user_id} is already registered.")
+        return False
 
 def get_registered_users():
     if os.path.exists(REGISTERED_USERS_FILE):
