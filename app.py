@@ -7,7 +7,7 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import TextMessage, TextSendMessage, MessageEvent
 from dotenv import load_dotenv
-from utils.users import save_registered_user, get_registered_users
+from utils.users import save_registered_user, get_registered_users, remove_registered_user
 
 load_dotenv()
 
@@ -95,6 +95,9 @@ def handle_message(event):
     if text in ["สมัคร"]:
         save_registered_user(user_id)
         reply_text = "✅ สมัครรับการแจ้งเตือนแผ่นดินไหวเรียบร้อยแล้ว!"
+    elif text in ["ยกเลิกสมัคร"]:
+        remove_registered_user(user_id)
+        reply_text = "❌ ยกเลิกการรับแจ้งเตือนแผ่นดินไหวเรียบร้อยแล้ว"
     elif "แผ่นดินไหวล่าสุด" in text:
         earthquakes = fetch_earthquakes()
         recent_quakes = get_recent_earthquakes(earthquakes)
@@ -115,7 +118,8 @@ def handle_message(event):
     else:
         reply_text = (
             "พิมพ์ว่า 'สมัคร' เพื่อรับการแจ้งเตือนแผ่นดินไหวอัตโนมัติ 🌏\n"
-            "หรือพิมพ์ว่า 'แผ่นดินไหวล่าสุด' เพื่อดูข้อมูลล่าสุด"
+            "หรือพิมพ์ว่า 'แผ่นดินไหวล่าสุด' เพื่อดูข้อมูลล่าสุด\n"
+            "พิมพ์ว่า 'ยกเลิกสมัคร' หากไม่ต้องการรับการแจ้งเตือน"
         )
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_text))
